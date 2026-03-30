@@ -25,7 +25,7 @@ public class IssueService {
     @Autowired
     private BookRepo bookRepo;
 
-                   // MAIN METHOD (Issue Book)
+                   // MAIN METHOD (Issue Book) // create
     public IssueResponseDto issueBook(IssueRequestDto dto){
 
                       // User fetch
@@ -58,6 +58,29 @@ public class IssueService {
         responseDto.setIssueDate(saved.getIssueDate());
 
         return responseDto;
+    }
+
+    public String returnBook(Long issueId){
+
+        IssueEntity issue = issueRepo.findById(issueId)
+                .orElseThrow(() -> new RuntimeException("Issue not found"));
+
+        // Already returned check
+        if(issue.getReturnDate() != null){
+            throw new RuntimeException("Book already returned");
+        }
+
+        // Set return date
+        issue.setReturnDate(LocalDate.now());
+
+        // Increase available copies
+        BookEntity book = issue.getBook();
+        book.setAvailableCopies(book.getAvailableCopies() + 1);
+        bookRepo.save(book);
+
+        issueRepo.save(issue);
+
+        return "Book returned successfully";
     }
 
 
