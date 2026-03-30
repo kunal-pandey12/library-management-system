@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Service
 public class IssueService {
@@ -47,6 +48,7 @@ public class IssueService {
         IssueEntity issue=new IssueEntity();
         issue.setUser(user);
         issue.setBook(book);
+        issue.setDueDate(LocalDate.now().plusDays(7));
         issue.setIssueDate(LocalDate.now());
 
         IssueEntity saved=issueRepo.save(issue);
@@ -56,6 +58,7 @@ public class IssueService {
         responseDto.setUserName(user.getName());
         responseDto.setBookName(book.getName());
         responseDto.setIssueDate(saved.getIssueDate());
+        responseDto.setDueDate(saved.getDueDate());
 
         return responseDto;
     }
@@ -73,6 +76,10 @@ public class IssueService {
         // Set return date
         issue.setReturnDate(LocalDate.now());
 
+        if(issue.getReturnDate().isAfter(issue.getDueDate())){
+            return "Book returned late";
+        }
+
         // Increase available copies
         BookEntity book = issue.getBook();
         book.setAvailableCopies(book.getAvailableCopies() + 1);
@@ -82,6 +89,15 @@ public class IssueService {
 
         return "Book returned successfully";
     }
-
+    public List<IssueResponseDto> getAllIssues(){
+        return issueRepo.findAll().stream().map(issue -> {
+            IssueResponseDto dto = new IssueResponseDto();
+            dto.setId(issue.getId());
+            dto.setUserName(issue.getUser().getName());
+            dto.setBookName(issue.getBook().getName());
+            dto.setIssueDate(issue.getIssueDate());
+            return dto;
+        }).toList();
+    }
 
 }

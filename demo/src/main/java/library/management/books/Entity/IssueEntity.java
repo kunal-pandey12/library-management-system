@@ -25,4 +25,5 @@ public class IssueEntity {
 
     private LocalDate issueDate;
     private LocalDate returnDate;
+    private LocalDate DueDate;
 }
