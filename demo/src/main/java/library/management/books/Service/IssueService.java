@@ -1,5 +1,4 @@
 package library.management.books.Service;
-
 import library.management.books.Dto.IssueRequestDto;
 import library.management.books.Dto.IssueResponseDto;
 import library.management.books.Entity.BookEntity;
@@ -10,7 +9,6 @@ import library.management.books.Repo.IssueRepo;
 import library.management.books.Repo.UserRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
 import java.time.LocalDate;
 import java.util.List;
 
@@ -36,6 +34,11 @@ public class IssueService {
                      //book fetch
         BookEntity book=bookRepo.findById(dto.getBookId())
                 .orElseThrow(()->new RuntimeException("Book not found"));
+
+        //   Duplicate check (NEW)
+        if(issueRepo.existsByUserAndBookAndReturnDateIsNull(user, book)){
+            throw new RuntimeException("Book already issued to this user");
+        }
 
                 // Availability check
         if (book.getAvailableCopies()<=0){
@@ -63,31 +66,37 @@ public class IssueService {
         return responseDto;
     }
 
-    public String returnBook(Long issueId){
+    public String returnBook(Long issueId) {
 
         IssueEntity issue = issueRepo.findById(issueId)
                 .orElseThrow(() -> new RuntimeException("Issue not found"));
 
         // Already returned check
-        if(issue.getReturnDate() != null){
+        if (issue.getReturnDate() != null) {
             throw new RuntimeException("Book already returned");
         }
 
         // Set return date
         issue.setReturnDate(LocalDate.now());
+        String message = "Book returned successfully";
 
-        if(issue.getReturnDate().isAfter(issue.getDueDate())){
-            return "Book returned late";
-        }
 
-        // Increase available copies
+        if (issue.getReturnDate().isAfter(issue.getDueDate())) {
+                int daysLate = issue.getReturnDate().getDayOfMonth()
+                        - issue.getDueDate().getDayOfMonth();
+                int fine = daysLate * 10;
+                message = "Book returned late. Fine: ₹" + fine;
+            }
+
+
+       // Increase available copies (ALWAYS chalega)
         BookEntity book = issue.getBook();
         book.setAvailableCopies(book.getAvailableCopies() + 1);
         bookRepo.save(book);
 
         issueRepo.save(issue);
 
-        return "Book returned successfully";
+        return message;
     }
     public List<IssueResponseDto> getAllIssues(){
         return issueRepo.findAll().stream().map(issue -> {
@@ -99,5 +108,4 @@ public class IssueService {
             return dto;
         }).toList();
     }
-
 }
