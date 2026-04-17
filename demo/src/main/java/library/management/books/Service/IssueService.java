@@ -1,4 +1,5 @@
 package library.management.books.Service;
+
 import library.management.books.Dto.IssueRequestDto;
 import library.management.books.Dto.IssueResponseDto;
 import library.management.books.Entity.BookEntity;
@@ -9,6 +10,7 @@ import library.management.books.Repo.IssueRepo;
 import library.management.books.Repo.UserRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
 import java.time.LocalDate;
 import java.util.List;
 
@@ -24,39 +26,38 @@ public class IssueService {
     @Autowired
     private BookRepo bookRepo;
 
-                   // MAIN METHOD (Issue Book) // create
+    // ISSUE BOOK
     public IssueResponseDto issueBook(IssueRequestDto dto){
 
-                      // User fetch
-        UserEntity user=userRepo.findById(dto.getUserId())
-                .orElseThrow(()->new RuntimeException("User not found"));
+        UserEntity user = userRepo.findById(dto.getUserId())
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
-                     //book fetch
-        BookEntity book=bookRepo.findById(dto.getBookId())
-                .orElseThrow(()->new RuntimeException("Book not found"));
+        BookEntity book = bookRepo.findById(dto.getBookId())
+                .orElseThrow(() -> new RuntimeException("Book not found"));
 
-        //   Duplicate check (NEW)
+        // Duplicate check
         if(issueRepo.existsByUserAndBookAndReturnDateIsNull(user, book)){
             throw new RuntimeException("Book already issued to this user");
         }
 
-                // Availability check
-        if (book.getAvailableCopies()<=0){
+        // Availability check
+        if (book.getAvailableCopies() <= 0){
             throw new RuntimeException("Book not available");
         }
-           // Decrease copies
-        book.setAvailableCopies(book.getAvailableCopies()-1);
+
+        // Decrease copies
+        book.setAvailableCopies(book.getAvailableCopies() - 1);
         bookRepo.save(book);
 
-        IssueEntity issue=new IssueEntity();
+        IssueEntity issue = new IssueEntity();
         issue.setUser(user);
         issue.setBook(book);
-        issue.setDueDate(LocalDate.now().plusDays(7));
         issue.setIssueDate(LocalDate.now());
+        issue.setDueDate(LocalDate.now().plusDays(7));
 
-        IssueEntity saved=issueRepo.save(issue);
+        IssueEntity saved = issueRepo.save(issue);
 
-        IssueResponseDto responseDto=new IssueResponseDto();
+        IssueResponseDto responseDto = new IssueResponseDto();
         responseDto.setId(saved.getId());
         responseDto.setUserName(user.getName());
         responseDto.setBookName(book.getName());
@@ -66,30 +67,29 @@ public class IssueService {
         return responseDto;
     }
 
+    // RETURN BOOK
     public String returnBook(Long issueId) {
 
         IssueEntity issue = issueRepo.findById(issueId)
                 .orElseThrow(() -> new RuntimeException("Issue not found"));
 
-        // Already returned check
         if (issue.getReturnDate() != null) {
             throw new RuntimeException("Book already returned");
         }
 
-        // Set return date
         issue.setReturnDate(LocalDate.now());
+
         String message = "Book returned successfully";
 
-
+        // Fine logic
         if (issue.getReturnDate().isAfter(issue.getDueDate())) {
-                int daysLate = issue.getReturnDate().getDayOfMonth()
-                        - issue.getDueDate().getDayOfMonth();
-                int fine = daysLate * 10;
-                message = "Book returned late. Fine: ₹" + fine;
-            }
+            int daysLate = issue.getReturnDate().getDayOfMonth()
+                    - issue.getDueDate().getDayOfMonth();
+            int fine = daysLate * 10;
+            message = "Book returned late. Fine: ₹" + fine;
+        }
 
-
-       // Increase available copies (ALWAYS chalega)
+        // Increase copies
         BookEntity book = issue.getBook();
         book.setAvailableCopies(book.getAvailableCopies() + 1);
         bookRepo.save(book);
@@ -98,6 +98,8 @@ public class IssueService {
 
         return message;
     }
+
+    // GET ALL ISSUES
     public List<IssueResponseDto> getAllIssues(){
         return issueRepo.findAll().stream().map(issue -> {
             IssueResponseDto dto = new IssueResponseDto();
