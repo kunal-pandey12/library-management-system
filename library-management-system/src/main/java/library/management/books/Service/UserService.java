@@ -4,6 +4,7 @@ import library.management.books.Entity.Role;
 import library.management.books.Entity.UserEntity;
 import library.management.books.Repo.UserRepo;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import java.util.List;
 
@@ -13,6 +14,9 @@ public class UserService {
     @Autowired
     private UserRepo userRepo;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     public List<UserDto> createUser(List<UserDto> dtoList){
         return dtoList.stream().map(dto->{
 
@@ -21,7 +25,8 @@ public class UserService {
             user.setEmail(dto.getEmail());
 
             user.setRole(Role.valueOf(dto.getRole().toUpperCase()));
-            user.setPassword(dto.getPassword());
+            user.setPassword(
+                    passwordEncoder.encode(dto.getPassword()));
 
             UserEntity saved = userRepo.save(user);
 
@@ -43,7 +48,7 @@ public class UserService {
             dto.setId(user.getId());
             dto.setName(user.getName());
             dto.setEmail(user.getEmail());
-            dto.setRole(user.getEmail());
+            dto.setRole(user.getRole().name());
             dto.setPassword(user.getPassword());
             return dto;
         }).toList();
@@ -58,7 +63,7 @@ public class UserService {
         dto.setId(userEntity.getId());
         dto.setName(userEntity.getName());
         dto.setEmail(userEntity.getEmail());
-        dto.setRole(userEntity.getEmail());
+        dto.setRole(userEntity.getRole().name());
         dto.setPassword(userEntity.getPassword());
         return dto;
         }
@@ -70,7 +75,7 @@ public class UserService {
         userEntity.setName(userDto.getName());
         userEntity.setEmail(userDto.getEmail());
         userEntity.setRole(Role.valueOf(userDto.getRole().toUpperCase()));
-        userEntity.setPassword(userDto.getPassword());
+        userEntity.setPassword(passwordEncoder.encode(userDto.getPassword()));
 
         UserEntity updateUser=userRepo.save(userEntity);
 
